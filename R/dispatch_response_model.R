@@ -21,12 +21,12 @@
 dispatch_response_model = function(type){
 
   rcs = list(
-    logistic = logistic_response,
-    log_logistic = log_logistic_response,
-    gompertz = gompertz_response,
-    reflected_gompertz = reflected_gompertz_response,
-    weibull = weibull_response,
-    reflected_weibull = reflected_weibull_response
+    logistic = logistic_response_model,
+    log_logistic = log_logistic_response_model,
+    gompertz = gompertz_response_model,
+    reflected_gompertz = reflected_gompertz_response_model,
+    weibull = weibull_response_model,
+    reflected_weibull = reflected_weibull_response_model
   )
 
   if (!type %in% names(rcs)) {
