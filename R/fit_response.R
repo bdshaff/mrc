@@ -22,6 +22,8 @@ fit_response = function(data, x = NULL, y = NULL, type = "gompertz", ...){
     stop("Both 'x' and 'y' must be columns in the provided data.")
   }
 
+  data <- data[,c(x,y)]
+
   fit <- brms::brm(rc_formula, data = data, ...)
 
   fit$rc_type = type

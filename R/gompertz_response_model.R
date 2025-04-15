@@ -13,10 +13,10 @@
 #' \deqn{y = c + (d - c) * exp(-exp( b * (x - e)))}
 #' @examples
 #' x_values <- seq(0, 10, by = 0.1)
-#' b <- -0.05
+#' b <- -0.005
 #' c <- 0
 #' d <- 1
-#' e <- 0.5
+#' e <- 5
 #' result <- gompertz_response_model(x_values, b, c, d, e)
 #' plot(x_values, result, type = "l", main = "Gompertz Response Model", xlab = "x", ylab = "y")
 #' @export
