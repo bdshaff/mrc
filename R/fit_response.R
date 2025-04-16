@@ -24,6 +24,9 @@ fit_response = function(data, x = NULL, y = NULL, type = "gompertz", ...){
 
   data <- data[,c(x,y)]
 
+  #rename the columns of data by removing any _ or . in the column names
+  colnames(data) <- gsub("[_.]", "", colnames(data))
+
   fit <- brms::brm(rc_formula, data = data, ...)
 
   fit$rc_type = type

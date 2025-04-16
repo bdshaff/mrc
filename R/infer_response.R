@@ -3,11 +3,12 @@
 #' This function infers the response from a fitted model object.
 #' @param rc_fit A fitted model object.
 #' @param xrange A numeric vector of length 2 specifying the range of x values for prediction. Default is NULL, which uses the range of x in the data.
+#' @param length.out An integer specifying the number of points to predict. Default is 1000.
 #' @return A data frame containing the predicted response values and the model response.
 #' @details The function infers the response from the fitted model object and returns a data frame with the predicted response values and the model response.
 #' @export
 
-infer_response = function(rc_fit, xrange = NULL){
+infer_response = function(rc_fit, xrange = NULL, length.out = 1000){
 
   rc_type = rc_fit$rc_type
   rc_data = rc_fit$data
@@ -22,7 +23,7 @@ infer_response = function(rc_fit, xrange = NULL){
     stop("xrange must be a numeric vector of length 2 with the first element less than the second.")
   }
 
-  xseq = seq(xrange[1], xrange[2], length.out = 1000)
+  xseq = seq(xrange[1], xrange[2], length.out = length.out)
   new_df = data.frame(x = xseq)
   colnames(new_df) = x
 
