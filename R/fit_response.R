@@ -14,9 +14,6 @@
 
 fit_response = function(data, x = NULL, y = NULL, type = "gompertz", ...){
 
-  rc_formula = define_response_form(type, x, y)
-  print(rc_formula)
-
   if (!(x %in% names(data)) || !(y %in% names(data))) {
     stop("Both 'x' and 'y' must be columns in the provided data.")
   }
