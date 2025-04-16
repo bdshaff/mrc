@@ -15,7 +15,6 @@
 fit_response = function(data, x = NULL, y = NULL, type = "gompertz", ...){
 
   rc_formula = define_response_form(type, x, y)
-
   print(rc_formula)
 
   if (!(x %in% names(data)) || !(y %in% names(data))) {
@@ -26,6 +25,9 @@ fit_response = function(data, x = NULL, y = NULL, type = "gompertz", ...){
 
   #rename the columns of data by removing any _ or . in the column names
   colnames(data) <- gsub("[_.]", "", colnames(data))
+
+  rc_formula = define_response_form(type, colnames(data)[1], colnames(data)[2])
+  print(rc_formula)
 
   fit <- brms::brm(rc_formula, data = data, ...)
 
