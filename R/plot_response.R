@@ -3,14 +3,15 @@
 #' This function plots the response of a fitted model.
 #' @param rc_fit A fitted model object.
 #' @param xrange A vector of length 2 specifying the range of x values to plot. If NULL, the range of x values in the data is used.
+#' @param length.out An integer specifying the number of points to generate for the x-axis. Default is 1000.
 #' @param points A logical value indicating whether to plot the data points. Default is TRUE.
 #' @return A ggplot object.
 #' @details The function plots the response of a fitted model object. It uses ggplot2 to create the plot and includes a title and subtitle with information about the model.
 #' @export
 
-plot_response = function(rc_fit, xrange = NULL, points = TRUE){
+plot_response = function(rc_fit, xrange = NULL, length.out = 1000, points = TRUE){
 
-  response_df = infer_response(rc_fit, xrange = xrange)
+  response_df = infer_response(rc_fit, xrange = xrange, length.out = length.out)
   rc_data = rc_fit$data
   rc_type = rc_fit$rc_type
   y = rc_fit$formula$resp
