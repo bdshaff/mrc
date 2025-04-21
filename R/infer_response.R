@@ -37,6 +37,7 @@ infer_response = function(rc_fit, xrange = NULL, length.out = 1000){
   response_params <- extract_parameters(rc_fit)
 
   model_response = purrr::map_dfc(response_params, ~response_curve(xseq, .x, type = rc_type))
+  model_response$lower  = if_else(model_response$lower < 0, 0, model_response$lower)
   colnames(model_response) = paste0(y,"_",rc_type,"_", colnames(model_response))
 
   pred_df = cbind(new_df, pred_df, model_response)
