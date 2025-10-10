@@ -14,7 +14,7 @@
 #' \deqn{y = c + \frac{(d - c)}{1 + e^{-b(x - e)}}}
 #' @examples
 #' x_values <- seq(0, 10, by = 0.1)
-#' b <- -0.005
+#' b <- -2
 #' c <- 0
 #' d <- 1
 #' e <- 5

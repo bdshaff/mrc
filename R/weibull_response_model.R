@@ -15,7 +15,7 @@
 #' \deqn{y = c + (d - c) * exp(-exp( b * (log(x) - log(e))))}
 #' @examples
 #' x_values <- seq(0, 10, by = 0.1)
-#' b <- -0.05
+#' b <- -1
 #' c <- 0
 #' d <- 1
 #' e <- 5

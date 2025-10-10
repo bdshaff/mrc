@@ -1,0 +1,62 @@
+---
+title: "Response Models"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{response_models}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(mrc)
+```
+
+```{r, message=FALSE, warning=FALSE}
+library(dplyr)
+library(ggplot2)
+library(purrr)
+library(tidyr)
+
+x_values <- seq(0, 1, by = 0.01)
+
+b <- -8
+c <- 0
+d <- 10
+e <- 0.5
+
+response_models <- list(
+  logistic_curve = logistic_response_model,
+  gompertz_curve = gompertz_response_model,
+  reflected_gompertz = reflected_gompertz_response_model,
+  weibull_curve = weibull_response_model,
+  log_logistic_curve = log_logistic_response_model,
+  reflected_weibull = reflected_weibull_response_model
+)
+
+response_curves <- bind_cols(
+  x = x_values,
+  map_dfc(response_models, ~ .x(x_values, b, c, d, e))
+)
+
+
+plotly::ggplotly(
+  response_curves |>
+    pivot_longer(-x, names_to = "model", values_to = "y") |>
+    ggplot(aes(x, y, color = model)) +
+    geom_line() +
+    labs(
+      title = paste0("
+      Response Curve Model Comparison
+      ", "b: ", b, ", c: ", c, ", d: ", d, ", e: ", e),
+    ) +
+    theme_minimal()
+)
+```
+

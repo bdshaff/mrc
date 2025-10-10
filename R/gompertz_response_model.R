@@ -13,7 +13,7 @@
 #' \deqn{y = c + (d - c) * exp(-exp( b * (x - e)))}
 #' @examples
 #' x_values <- seq(0, 10, by = 0.1)
-#' b <- -0.005
+#' b <- -0.5
 #' c <- 0
 #' d <- 1
 #' e <- 5

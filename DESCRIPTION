@@ -14,4 +14,9 @@ Imports:
     purrr
 Suggests:
     dplyr,
-    testthat
+    knitr,
+    rmarkdown,
+    testthat,
+    quarto
+VignetteBuilder: knitr, dplyr, ggplot2, purrr, tidyr, plotly
+URL: https://bdshaff.github.io/mrc/
