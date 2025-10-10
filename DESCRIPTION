@@ -17,6 +17,8 @@ Suggests:
     knitr,
     rmarkdown,
     testthat,
-    quarto
+    quarto,
+    tidyr, 
+    plotly
 VignetteBuilder: knitr, dplyr, ggplot2, purrr, tidyr, plotly
 URL: https://bdshaff.github.io/mrc/
