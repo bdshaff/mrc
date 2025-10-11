@@ -41,7 +41,7 @@
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">plot_response</span><span class="op">(</span><span class="va">rc_fit</span>, xrange <span class="op">=</span> <span class="cn">NULL</span>, points <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">plot_response</span><span class="op">(</span><span class="va">rc_fit</span>, xrange <span class="op">=</span> <span class="cn">NULL</span>, length.out <span class="op">=</span> <span class="fl">1000</span>, points <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -49,11 +49,15 @@
 
 
 <dl><dt id="arg-rc-fit">rc_fit<a class="anchor" aria-label="anchor" href="#arg-rc-fit"></a></dt>
-<dd><p>A fitted model object.</p></dd>
+<dd><p>A fitted model object. It can be a brmsfit object or a list of brmsfit objects.</p></dd>
 
 
 <dt id="arg-xrange">xrange<a class="anchor" aria-label="anchor" href="#arg-xrange"></a></dt>
 <dd><p>A vector of length 2 specifying the range of x values to plot. If NULL, the range of x values in the data is used.</p></dd>
+
+
+<dt id="arg-length-out">length.out<a class="anchor" aria-label="anchor" href="#arg-length-out"></a></dt>
+<dd><p>An integer specifying the number of points to generate for the x-axis. Default is 1000.</p></dd>
 
 
 <dt id="arg-points">points<a class="anchor" aria-label="anchor" href="#arg-points"></a></dt>
