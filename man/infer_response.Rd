@@ -4,12 +4,14 @@
 \alias{infer_response}
 \title{Infer response from a fitted model}
 \usage{
-infer_response(rc_fit, xrange = NULL)
+infer_response(rc_fit, xrange = NULL, length.out = 1000)
 }
 \arguments{
 \item{rc_fit}{A fitted model object.}
 
 \item{xrange}{A numeric vector of length 2 specifying the range of x values for prediction. Default is NULL, which uses the range of x in the data.}
+
+\item{length.out}{An integer specifying the number of points to predict. Default is 1000.}
 }
 \value{
 A data frame containing the predicted response values and the model response.

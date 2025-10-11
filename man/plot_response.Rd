@@ -4,12 +4,14 @@
 \alias{plot_response}
 \title{Plot the response of a fitted model}
 \usage{
-plot_response(rc_fit, xrange = NULL, points = TRUE)
+plot_response(rc_fit, xrange = NULL, length.out = 1000, points = TRUE)
 }
 \arguments{
-\item{rc_fit}{A fitted model object.}
+\item{rc_fit}{A fitted model object. It can be a brmsfit object or a list of brmsfit objects.}
 
 \item{xrange}{A vector of length 2 specifying the range of x values to plot. If NULL, the range of x values in the data is used.}
+
+\item{length.out}{An integer specifying the number of points to generate for the x-axis. Default is 1000.}
 
 \item{points}{A logical value indicating whether to plot the data points. Default is TRUE.}
 }

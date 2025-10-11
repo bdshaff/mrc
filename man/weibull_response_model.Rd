@@ -30,10 +30,10 @@ The Weibull function is defined as:
 }
 \examples{
 x_values <- seq(0, 10, by = 0.1)
-b <- -0.05
+b <- -1
 c <- 0
 d <- 1
-e <- 0.5
+e <- 5
 result <- weibull_response_model(x_values, b, c, d, e)
 plot(x_values, result, type = "l", main = "Weibull Response Model", xlab = "x", ylab = "y")
 }
