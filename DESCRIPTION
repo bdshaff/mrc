@@ -14,7 +14,8 @@ Imports:
     purrr,
     nloptr,
     dplyr,
-    BH
+    BH,
+    RcppEigen
 Suggests:
     dplyr,
     knitr,
