@@ -13,7 +13,8 @@ Imports:
     ggplot2,
     purrr,
     nloptr,
-    dplyr
+    dplyr,
+    BH
 Suggests:
     dplyr,
     knitr,
