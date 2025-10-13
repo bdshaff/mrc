@@ -11,7 +11,9 @@ RoxygenNote: 7.3.2
 Imports:
     brms,
     ggplot2,
-    purrr
+    purrr,
+    nloptr,
+    dplyr
 Suggests:
     dplyr,
     knitr,
@@ -19,6 +21,7 @@ Suggests:
     testthat,
     quarto,
     tidyr, 
-    plotly
-VignetteBuilder: knitr, dplyr, ggplot2, purrr, tidyr, plotly
+    plotly,
+    gt
+VignetteBuilder: knitr, dplyr, ggplot2, purrr, tidyr, plotly, gt
 URL: https://bdshaff.github.io/mrc/

@@ -1,0 +1,152 @@
+---
+title: "Fitting a Response Model: A Simulated Example"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{simulated_example}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(mrc)
+library(brms)
+library(purrr)
+library(gt)
+library(dplyr)
+library(ggplot2)
+```
+
+```{r, message=FALSE, warning=FALSE}
+
+x_values <- seq(0, 1, by = 0.01)
+
+b <- -5
+c <- 1
+d <- 10
+e <- 0.5
+
+y_response = gompertz_response_model(x_values, b, c, d, e) + rnorm(length(x_values), mean = 0, sd = 0.4)
+
+response_df <- bind_cols(
+  x = x_values,
+  y = y_response
+)
+
+
+
+response_df |>
+  ggplot(aes(x, y)) +
+  geom_point() +
+  labs(title = paste0("
+    Response Curve Model Comparison
+    ", "b: ", b, ", c: ", c, ", d: ", d, ", e: ", e),
+    subtitle = "With Random Noise N(0, 0.4)" 
+  ) +
+  theme_minimal()
+
+```
+
+```{r, message=FALSE, warning=FALSE}
+response_fit = 
+  fit_response(
+    data = response_df,
+    x = "x",
+    y = "y",
+    type = "gompertz",
+    prior = c(
+      prior(normal(-5, 10), nlpar = "b", lb = -10, ub = 0),
+      prior(normal(0, 5), nlpar = "c", ub = 4.9),
+      prior(normal(10, 5), nlpar = "d", lb = 5.1),
+      prior(normal(0.6, 2), nlpar = "e")
+    ),
+    chains = 2,
+    iter = 2000, 
+    warmup = 1000,
+    seed = 007,
+    control = list(adapt_delta = 0.90)
+  )
+```
+
+```{r, message=FALSE, warning=FALSE}
+summary(response_fit)
+```
+
+```{r, message=FALSE, warning=FALSE}
+plot(response_fit)
+```
+
+
+```{r, message=FALSE, warning=FALSE}
+pp_check(response_fit)
+```
+```{r, message=FALSE, warning=FALSE}
+plot_response(response_fit)
+```
+
+```{r, message=FALSE, warning=FALSE}
+bind_cols(
+  actual = c(b, c, d, e),
+  extract_parameters(response_fit) |> 
+    map(~round(unlist(.x), 2)) |> 
+    as_tibble()
+) |> 
+  gt::gt() |> 
+  gt::tab_header(
+    title = "Parameter Estimates vs Actual Values",
+    subtitle = "Using the Gompertz Response Model"
+  )
+```
+
+```{r, message=FALSE, warning=FALSE}
+response = infer_response(response_fit, length.out = 100)
+
+head(response) |> 
+  gt::gt() |>
+  gt::tab_header(
+    title = "Inferred Response Data",
+    subtitle = "Using the Gompertz Response Model"
+  ) |>
+  gt::fmt_number(
+    columns = tidyselect::everything(),
+    decimals = 2
+  )
+```
+
+```{r, message=FALSE, warning=FALSE}
+response |> 
+  ggplot(aes(x, y_Estimate)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = y_Q2.5, ymax = y_Q97.5), alpha = 0.2) +
+  labs(
+    title = "Inferred Response Curve",
+    subtitle = "With 95% Credible Interval"
+  ) +
+  theme_minimal()
+```
+
+```{r, message=FALSE, warning=FALSE}
+response |> 
+  ggplot(aes(x, y_gompertz_center)) +
+  geom_line(aes(color = "center")) +
+  geom_line(aes(y = y_gompertz_lower, color = "lower"), linetype = "dashed") +
+  geom_line(aes(y = y_gompertz_upper, color = "upper"), linetype = "dashed") +
+  labs(
+    title = "Gompertz Function at Estimated Parameters",
+    subtitle = "With Upper and Lower Bounds",
+    y = "Response"
+  ) +
+  theme_minimal() +
+  #add a legend
+  scale_color_manual(
+    name = "Legend",
+    values = c("center" = "blue", "lower" = "red", "upper" = "green"),
+    labels = c("Center", "Lower Bound", "Upper Bound")
+  )
+```

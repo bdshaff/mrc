@@ -1,0 +1,127 @@
+---
+title: "Mix Optimization: A Simulated Example"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{optimal_simulated_example}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(mrc)
+library(brms)
+library(purrr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(nloptr)
+```
+
+```{r, message=FALSE, warning=FALSE}
+set.seed(123)
+n = 100
+C = 4
+b_sim = rnorm(C, mean = -3, sd = 0.1)
+c_sim = rnorm(C, mean = 0.1, sd = 0.01)
+d_sim = rnorm(C, mean = 1, sd = 0.1)
+e_sim = rnorm(C, mean = 0.7, sd = 0.1)
+
+"logistic"
+"gompertz"
+resp_forms = c("gompertz")
+
+form_sim = sample(resp_forms, size = C, replace = TRUE)
+resp_funcs = map(form_sim, ~dispatch_response_model(.x))
+
+x_sim = seq(0, 1, length.out = n)
+y_sim = data.frame(matrix(NA, nrow = n, ncol = C))
+
+for(i in 1:C) {
+  y_sim[, i] = resp_funcs[[i]](x_sim, b = b_sim[i], c = c_sim[i], d = d_sim[i], e = e_sim[i]) +
+    rnorm(n, mean = 0, sd = 0.03)
+}
+
+colnames(y_sim) = paste0("C", 1:C)
+y_sim = 
+  as_tibble(y_sim) %>%
+  mutate(x = x_sim) %>%
+  pivot_longer(cols = starts_with("C"), names_to = "channel", values_to = "y") %>%
+  mutate(channel = factor(channel, levels = paste0("C", 1:C)))
+```
+
+```{r,  message=FALSE, warning=FALSE}
+ggplot(y_sim, aes(x = x, y = y, color = channel)) +
+  geom_point(alpha = 0.5) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(x = "x", y = "y", title = "Simulated Data") +
+  facet_wrap(~channel, ncol = 4)
+```
+
+```{r,  message=FALSE, warning=FALSE}
+channels = levels(unique(y_sim$channel))
+
+response_models = list()
+for(i in seq_along(channels)) {
+  response_models[[channels[i]]] = fit_response(
+    data = y_sim |> filter(channel == channels[i]),
+    x = "x",
+    y = "y",
+    type = form_sim[i],
+    prior = c(
+      prior(normal(-3, 10), nlpar = "b", lb = -10, ub = 0),
+      prior(normal(0, 10), nlpar = "c"),
+      prior(normal(1, 10), nlpar = "d"),
+      prior(normal(0.6, 10), nlpar = "e")
+    ),
+    chains = 2,
+    iter = 2000, 
+    warmup = 1000,
+    seed = 007,
+    control = list(adapt_delta = 0.90)
+  )
+}
+
+```
+
+```{r,  message=FALSE, warning=FALSE}
+response_funs = map(response_models, ~get_response_function(.x))
+
+x_sim = seq(-0.2, 2.2, length.out = 100)
+map_dfr(response_funs, ~tibble(x = x_sim, y = .x(x_sim)), .id = "channel") %>%
+  ggplot(aes(x = x, y = y, color = channel)) +
+  geom_line() +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(x = "x", y = "y", title = "Fitted Response Curves") +
+  facet_wrap(~channel, ncol = 4) +
+  geom_point(data = y_sim, aes(x = x, y = y), alpha = 0.3, inherit.aes = TRUE)
+
+```
+
+```{r,  message=FALSE, warning=FALSE}
+res = optimal_mix(response_funs, total = 4)
+
+res$solution
+
+sum(res$solution)
+
+res$objective
+sum(map2_dbl(response_funs, res$solution, ~.x(.y)))
+sum(map2_dbl(response_funs, rep(0.5, C), ~.x(.y)))
+
+map2_dbl(response_funs, res$solution, ~.x(.y))
+```
+
+
+```{r,  message=FALSE, warning=FALSE}
+p = plot_optimal_mix(response_funs, res)
+plotly::ggplotly(p)
+```
