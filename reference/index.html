@@ -18,7 +18,9 @@
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/response_models.html">Response Models</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/optimal_simulated_example.html">Mix Optimization: A Simulated Example</a></li>
+    <li><a class="dropdown-item" href="../articles/response_models.html">Response Models</a></li>
+    <li><a class="dropdown-item" href="../articles/simulated_example.html">Fitting a Response Model: A Simulated Example</a></li>
   </ul></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
@@ -70,6 +72,12 @@
         <dd>Fit a response curve model using brms</dd>
       </dl><dl><dt>
 
+          <code><a href="get_response_function.html">get_response_function()</a></code>
+
+        </dt>
+        <dd>Get the response function from a fitted model</dd>
+      </dl><dl><dt>
+
           <code><a href="gompertz_response_model.html">gompertz_response_model()</a></code>
 
         </dt>
@@ -92,6 +100,18 @@
 
         </dt>
         <dd>Logistic Response Model</dd>
+      </dl><dl><dt>
+
+          <code><a href="optimal_mix.html">optimal_mix()</a></code>
+
+        </dt>
+        <dd>Optimal Mix Function This function computes the optimal mix of channels to maximize the total response given a set of response functions and constraints.</dd>
+      </dl><dl><dt>
+
+          <code><a href="plot_optimal_mix.html">plot_optimal_mix()</a></code>
+
+        </dt>
+        <dd>Plot Optimal Mix</dd>
       </dl><dl><dt>
 
           <code><a href="plot_range.html">plot_range()</a></code>
@@ -128,6 +148,24 @@
 
         </dt>
         <dd>Response Curve Function</dd>
+      </dl><dl><dt>
+
+          <code><a href="set_dafault_constraints.html">set_dafault_constraints()</a></code>
+
+        </dt>
+        <dd>Set default constraints for optimization</dd>
+      </dl><dl><dt>
+
+          <code><a href="set_objective_function.html">set_objective_function()</a></code>
+
+        </dt>
+        <dd>Create an objective function for optimization</dd>
+      </dl><dl><dt>
+
+          <code><a href="set_total_constraint.html">set_total_constraint()</a></code>
+
+        </dt>
+        <dd>Set a total constraint function</dd>
       </dl><dl><dt>
 
           <code><a href="weibull_response_model.html">weibull_response_model()</a></code>
