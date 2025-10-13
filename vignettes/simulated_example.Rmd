@@ -2,7 +2,7 @@
 title: "Fitting a Response Model: A Simulated Example"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{simulated_example}
+  %\VignetteIndexEntry{Fitting a Response Model: A Simulated Example}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

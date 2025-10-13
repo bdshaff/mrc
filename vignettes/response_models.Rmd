@@ -2,7 +2,7 @@
 title: "Response Models"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{response_models}
+  %\VignetteIndexEntry{Response Models}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

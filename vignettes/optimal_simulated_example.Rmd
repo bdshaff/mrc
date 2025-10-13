@@ -2,7 +2,7 @@
 title: "Mix Optimization: A Simulated Example"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{optimal_simulated_example}
+  %\VignetteIndexEntry{Mix Optimization: A Simulated Example}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
