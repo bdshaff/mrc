@@ -98,7 +98,7 @@
 <span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fl">10</span></span>
 <span><span class="va">e</span> <span class="op">&lt;-</span> <span class="fl">0.5</span></span>
 <span></span>
-<span><span class="va">y_response</span> <span class="op">=</span> <span class="fu"><a href="../reference/gompertz_response_model.html">gompertz_response_model</a></span><span class="op">(</span><span class="va">x_values</span>, <span class="va">b</span>, <span class="va">c</span>, <span class="va">d</span>, <span class="va">e</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">x_values</span><span class="op">)</span>, mean <span class="op">=</span> <span class="fl">0</span>, sd <span class="op">=</span> <span class="fl">0.4</span><span class="op">)</span></span>
+<span><span class="va">y_response</span> <span class="op">=</span> <span class="fu"><a href="../reference/rm_Gompertz.html">rm_Gompertz</a></span><span class="op">(</span><span class="va">x_values</span>, <span class="va">b</span>, <span class="va">c</span>, <span class="va">d</span>, <span class="va">e</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">x_values</span><span class="op">)</span>, mean <span class="op">=</span> <span class="fl">0</span>, sd <span class="op">=</span> <span class="fl">0.4</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">response_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind_cols.html" class="external-link">bind_cols</a></span><span class="op">(</span></span>
 <span>  x <span class="op">=</span> <span class="va">x_values</span>,</span>
@@ -144,8 +144,8 @@
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 1).</span></span>
 <span><span class="co">#&gt; Chain 1: </span></span>
-<span><span class="co">#&gt; Chain 1: Gradient evaluation took 7.8e-05 seconds</span></span>
-<span><span class="co">#&gt; Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.78 seconds.</span></span>
+<span><span class="co">#&gt; Chain 1: Gradient evaluation took 0.000103 seconds</span></span>
+<span><span class="co">#&gt; Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 1.03 seconds.</span></span>
 <span><span class="co">#&gt; Chain 1: Adjust your expectations accordingly!</span></span>
 <span><span class="co">#&gt; Chain 1: </span></span>
 <span><span class="co">#&gt; Chain 1: </span></span>
@@ -162,9 +162,9 @@
 <span><span class="co">#&gt; Chain 1: Iteration: 1800 / 2000 [ 90%]  (Sampling)</span></span>
 <span><span class="co">#&gt; Chain 1: Iteration: 2000 / 2000 [100%]  (Sampling)</span></span>
 <span><span class="co">#&gt; Chain 1: </span></span>
-<span><span class="co">#&gt; Chain 1:  Elapsed Time: 1.03 seconds (Warm-up)</span></span>
-<span><span class="co">#&gt; Chain 1:                0.902 seconds (Sampling)</span></span>
-<span><span class="co">#&gt; Chain 1:                1.932 seconds (Total)</span></span>
+<span><span class="co">#&gt; Chain 1:  Elapsed Time: 1.012 seconds (Warm-up)</span></span>
+<span><span class="co">#&gt; Chain 1:                0.885 seconds (Sampling)</span></span>
+<span><span class="co">#&gt; Chain 1:                1.897 seconds (Total)</span></span>
 <span><span class="co">#&gt; Chain 1: </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 2).</span></span>
@@ -187,9 +187,9 @@
 <span><span class="co">#&gt; Chain 2: Iteration: 1800 / 2000 [ 90%]  (Sampling)</span></span>
 <span><span class="co">#&gt; Chain 2: Iteration: 2000 / 2000 [100%]  (Sampling)</span></span>
 <span><span class="co">#&gt; Chain 2: </span></span>
-<span><span class="co">#&gt; Chain 2:  Elapsed Time: 1.092 seconds (Warm-up)</span></span>
-<span><span class="co">#&gt; Chain 2:                0.948 seconds (Sampling)</span></span>
-<span><span class="co">#&gt; Chain 2:                2.04 seconds (Total)</span></span>
+<span><span class="co">#&gt; Chain 2:  Elapsed Time: 1.071 seconds (Warm-up)</span></span>
+<span><span class="co">#&gt; Chain 2:                0.928 seconds (Sampling)</span></span>
+<span><span class="co">#&gt; Chain 2:                1.999 seconds (Total)</span></span>
 <span><span class="co">#&gt; Chain 2:</span></span></code></pre></div>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">response_fit</span><span class="op">)</span></span>
@@ -225,12 +225,12 @@
 <code class="sourceCode R"><span><span class="fu"><a href="https://mc-stan.org/bayesplot/reference/pp_check.html" class="external-link">pp_check</a></span><span class="op">(</span><span class="va">response_fit</span><span class="op">)</span></span></code></pre></div>
 <p><img src="simulated_example_files/figure-html/unnamed-chunk-6-1.png" width="700"></p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_response.html">plot_response</a></span><span class="op">(</span><span class="va">response_fit</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/mrm_plot_response.html">mrm_plot_response</a></span><span class="op">(</span><span class="va">response_fit</span><span class="op">)</span></span></code></pre></div>
 <p><img src="simulated_example_files/figure-html/unnamed-chunk-7-1.png" width="700"></p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind_cols.html" class="external-link">bind_cols</a></span><span class="op">(</span></span>
 <span>  actual <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">b</span>, <span class="va">c</span>, <span class="va">d</span>, <span class="va">e</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="../reference/extract_parameters.html">extract_parameters</a></span><span class="op">(</span><span class="va">response_fit</span><span class="op">)</span> <span class="op">|&gt;</span> </span>
+<span>  <span class="fu"><a href="../reference/mrm_extract.html">mrm_extract</a></span><span class="op">(</span><span class="va">response_fit</span><span class="op">)</span> <span class="op">|&gt;</span> </span>
 <span>    <span class="fu"><a href="https://purrr.tidyverse.org/reference/map.html" class="external-link">map</a></span><span class="op">(</span><span class="op">~</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="va">.x</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span> </span>
 <span>    <span class="fu"><a href="https://tibble.tidyverse.org/reference/as_tibble.html" class="external-link">as_tibble</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span> <span class="op">|&gt;</span> </span>
@@ -732,7 +732,7 @@
 </table>
 </div>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">response</span> <span class="op">=</span> <span class="fu"><a href="../reference/infer_response.html">infer_response</a></span><span class="op">(</span><span class="va">response_fit</span>, length.out <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">response</span> <span class="op">=</span> <span class="fu"><a href="../reference/mrm_infer.html">mrm_infer</a></span><span class="op">(</span><span class="va">response_fit</span>, length.out <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">response</span><span class="op">)</span> <span class="op">|&gt;</span> </span>
 <span>  <span class="fu">gt</span><span class="fu">::</span><span class="fu"><a href="https://gt.rstudio.com/reference/gt.html" class="external-link">gt</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -1196,10 +1196,10 @@
 <table class="table gt_table" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
 <thead>
 <tr class="gt_heading">
-<td colspan="8" class="gt_heading gt_title gt_font_normal" style>Inferred Response Data</td>
+<td colspan="10" class="gt_heading gt_title gt_font_normal" style>Inferred Response Data</td>
     </tr>
 <tr class="gt_heading">
-<td colspan="8" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border" style>Using the Gompertz Response Model</td>
+<td colspan="10" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border" style>Using the Gompertz Response Model</td>
     </tr>
 <tr class="gt_col_headings">
 <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col" id="x">x</th>
@@ -1210,6 +1210,8 @@
       <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col" id="y_gompertz_center">y_gompertz_center</th>
       <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col" id="y_gompertz_lower">y_gompertz_lower</th>
       <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col" id="y_gompertz_upper">y_gompertz_upper</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col" id="ar">ar</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1" scope="col" id="mr">mr</th>
     </tr>
 </thead>
 <tbody class="gt_table_body">
@@ -1222,6 +1224,8 @@
 <td headers="y_gompertz_center" class="gt_row gt_right">0.88</td>
 <td headers="y_gompertz_lower" class="gt_row gt_right">0.69</td>
 <td headers="y_gompertz_upper" class="gt_row gt_right">1.06</td>
+<td headers="ar" class="gt_row gt_right">NaN</td>
+<td headers="mr" class="gt_row gt_right">NA</td>
 </tr>
 <tr>
 <td headers="x" class="gt_row gt_right">0.02</td>
@@ -1232,6 +1236,8 @@
 <td headers="y_gompertz_center" class="gt_row gt_right">0.88</td>
 <td headers="y_gompertz_lower" class="gt_row gt_right">0.69</td>
 <td headers="y_gompertz_upper" class="gt_row gt_right">1.06</td>
+<td headers="ar" class="gt_row gt_right">0.02</td>
+<td headers="mr" class="gt_row gt_right">0.02</td>
 </tr>
 <tr>
 <td headers="x" class="gt_row gt_right">0.04</td>
@@ -1242,6 +1248,8 @@
 <td headers="y_gompertz_center" class="gt_row gt_right">0.89</td>
 <td headers="y_gompertz_lower" class="gt_row gt_right">0.69</td>
 <td headers="y_gompertz_upper" class="gt_row gt_right">1.07</td>
+<td headers="ar" class="gt_row gt_right">0.03</td>
+<td headers="mr" class="gt_row gt_right">0.04</td>
 </tr>
 <tr>
 <td headers="x" class="gt_row gt_right">0.06</td>
@@ -1252,6 +1260,8 @@
 <td headers="y_gompertz_center" class="gt_row gt_right">0.89</td>
 <td headers="y_gompertz_lower" class="gt_row gt_right">0.69</td>
 <td headers="y_gompertz_upper" class="gt_row gt_right">1.07</td>
+<td headers="ar" class="gt_row gt_right">0.05</td>
+<td headers="mr" class="gt_row gt_right">0.08</td>
 </tr>
 <tr>
 <td headers="x" class="gt_row gt_right">0.08</td>
@@ -1262,6 +1272,8 @@
 <td headers="y_gompertz_center" class="gt_row gt_right">0.89</td>
 <td headers="y_gompertz_lower" class="gt_row gt_right">0.69</td>
 <td headers="y_gompertz_upper" class="gt_row gt_right">1.08</td>
+<td headers="ar" class="gt_row gt_right">0.07</td>
+<td headers="mr" class="gt_row gt_right">0.16</td>
 </tr>
 <tr>
 <td headers="x" class="gt_row gt_right">0.10</td>
@@ -1272,6 +1284,8 @@
 <td headers="y_gompertz_center" class="gt_row gt_right">0.90</td>
 <td headers="y_gompertz_lower" class="gt_row gt_right">0.70</td>
 <td headers="y_gompertz_upper" class="gt_row gt_right">1.09</td>
+<td headers="ar" class="gt_row gt_right">0.12</td>
+<td headers="mr" class="gt_row gt_right">0.29</td>
 </tr>
 </tbody>
 </table>
