@@ -32,7 +32,7 @@ c <- 1
 d <- 10
 e <- 0.5
 
-y_response = gompertz_response_model(x_values, b, c, d, e) + rnorm(length(x_values), mean = 0, sd = 0.4)
+y_response = rm_Gompertz(x_values, b, c, d, e) + rnorm(length(x_values), mean = 0, sd = 0.4)
 
 response_df <- bind_cols(
   x = x_values,
@@ -87,13 +87,13 @@ plot(response_fit)
 pp_check(response_fit)
 ```
 ```{r, message=FALSE, warning=FALSE}
-plot_response(response_fit)
+mrm_plot_response(response_fit)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 bind_cols(
   actual = c(b, c, d, e),
-  extract_parameters(response_fit) |> 
+  mrm_extract(response_fit) |> 
     map(~round(unlist(.x), 2)) |> 
     as_tibble()
 ) |> 
@@ -105,7 +105,7 @@ bind_cols(
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-response = infer_response(response_fit, length.out = 100)
+response = mrm_infer(response_fit, length.out = 100)
 
 head(response) |> 
   gt::gt() |>

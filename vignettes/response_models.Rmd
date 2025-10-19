@@ -32,12 +32,12 @@ d <- 10
 e <- 0.5
 
 response_models <- list(
-  logistic_curve = logistic_response_model,
-  gompertz_curve = gompertz_response_model,
-  reflected_gompertz = reflected_gompertz_response_model,
-  weibull_curve = weibull_response_model,
-  log_logistic_curve = log_logistic_response_model,
-  reflected_weibull = reflected_weibull_response_model
+  logistic_curve = rm_Logistic,
+  gompertz_curve = rm_Gompertz,
+  reflected_gompertz = rm_GompertzRef,
+  weibull_curve = rm_Weibull,
+  log_logistic_curve = rm_LogLogistic,
+  reflected_weibull = rm_WeibullRef
 )
 
 response_curves <- bind_cols(

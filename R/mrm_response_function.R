@@ -6,14 +6,14 @@
 #' #' @return A function that takes a numeric vector of x values and returns the corresponding y values based on the specified response model and parameters.
 #'
 #' @export
-get_response_function = function(model, location = "center"){
+mrm_response_function = function(mrm, location = "center"){
 
   if(!(location %in% c("lower", "center", "upper"))){
     stop("location must be one of 'left', 'center', or 'right'")
   }
 
-  f = rm_dispatch(model$rc_type)
-  p = mrm_extract(model)[[location]]
+  f = rm_dispatch(mrm$rc_type)
+  p = mrm_extract(mrm)[[location]]
   function(x) {
     f(x, b = p$b, c = p$c, d = p$d, e = p$e)
   }

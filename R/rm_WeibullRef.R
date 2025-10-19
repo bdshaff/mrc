@@ -21,7 +21,7 @@
 #' plot(x_values, result, type = "l", main = "Reflected Weibull Response Model", xlab = "x", ylab = "y")
 #' @export
 
-reflected_weibull_response_model = function(x, b, c, d, e){
+rm_WeibullRef = function(x, b, c, d, e){
 
   if (!is.numeric(x) || !is.vector(x)) {
     stop("x must be a numeric vector.")

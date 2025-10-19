@@ -1,5 +1,3 @@
-# add roxygen comments
-
 #' @title Response Curve Function
 #' @description
 #' This function computes the response curve based on the specified model type.
@@ -18,7 +16,7 @@
 #' @return A numeric vector representing the response values computed by the model.
 #' @export
 
-response_curve = function(x, params, type = "gompertz"){
+response = function(x, params, type = "gompertz"){
 
   if (!is.numeric(x) || !is.vector(x)) {
     stop("x must be a numeric vector.")
@@ -31,7 +29,7 @@ response_curve = function(x, params, type = "gompertz"){
     stop("Each element of params must be a numeric value of length 1.")
   }
 
-  response_func = dispatch_response_model(type)
+  response_func = rm_dispatch(type)
   y = response_func(x, b = params$b, c = params$c, d = params$d, e = params$e)
 
   return(y)

@@ -8,7 +8,7 @@
 #'
 #' @export
 
-extract_parameters <- function(rc_fit) {
+mrm_extract <- function(rc_fit) {
   posterior_summary <- summary(rc_fit)$fixed
   params <- posterior_summary[grepl("b|c|d|e", rownames(posterior_summary)), ]
   params <- as.data.frame(params)

@@ -38,7 +38,7 @@ e_sim = rnorm(C, mean = 0.7, sd = 0.1)
 resp_forms = c("gompertz")
 
 form_sim = sample(resp_forms, size = C, replace = TRUE)
-resp_funcs = map(form_sim, ~dispatch_response_model(.x))
+resp_funcs = map(form_sim, ~rm_dispatch(.x))
 
 x_sim = seq(0, 1, length.out = n)
 y_sim = data.frame(matrix(NA, nrow = n, ncol = C))
@@ -107,7 +107,7 @@ map_dfr(response_funs, ~tibble(x = x_sim, y = .x(x_sim)), .id = "channel") %>%
 ```
 
 ```{r,  message=FALSE, warning=FALSE}
-res = optimal_mix(response_funs, total = 4)
+res = mrm_optimal_mix(response_models, total = 4)
 
 res$solution
 

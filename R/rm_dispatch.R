@@ -18,21 +18,21 @@
 #'
 #' @export
 
-dispatch_response_model = function(type){
+rm_dispatch = function(type){
 
-  rcs = list(
-    logistic = logistic_response_model,
-    log_logistic = log_logistic_response_model,
-    gompertz = gompertz_response_model,
-    reflected_gompertz = reflected_gompertz_response_model,
-    weibull = weibull_response_model,
-    reflected_weibull = reflected_weibull_response_model
+  rms = list(
+    logistic = rm_Logistic,
+    log_logistic = rm_LogLogistic,
+    gompertz = rm_Gompertz,
+    reflected_gompertz = rm_GompertzRef,
+    weibull = rm_Weibull,
+    reflected_weibull = rm_WeibullRef
   )
 
-  if (!type %in% names(rcs)) {
-    stop(paste("Invalid type. It needs to be one of:", paste(names(rcs), collapse = ", ")))
+  if (!type %in% names(rms)) {
+    stop(paste("Invalid type. It needs to be one of:", paste(names(rms), collapse = ", ")))
   }
 
-  return(rcs[[type]])
+  return(rms[[type]])
 
 }

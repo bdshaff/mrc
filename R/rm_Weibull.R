@@ -19,11 +19,11 @@
 #' c <- 0
 #' d <- 1
 #' e <- 5
-#' result <- weibull_response_model(x_values, b, c, d, e)
+#' result <- rm_Weibull(x_values, b, c, d, e)
 #' plot(x_values, result, type = "l", main = "Weibull Response Model", xlab = "x", ylab = "y")
 #' @export
 
-weibull_response_model = function(x, b, c, d, e){
+rm_Weibull = function(x, b, c, d, e){
 
   if (!is.numeric(x) || !is.vector(x)) {
     stop("x must be a numeric vector.")

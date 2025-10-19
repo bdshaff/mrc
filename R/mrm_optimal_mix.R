@@ -1,6 +1,6 @@
 #' Optimal Mix Function
 #' This function computes the optimal mix of channels to maximize the total response given a set of response functions and constraints.
-#' @param response_funs A list of response functions, where each function takes a numeric vector as input and returns a numeric value.
+#' @param mrm A list of response functions, where each function takes a numeric vector as input and returns a numeric value.
 #' @param total A numeric value representing the total budget or constraint for the optimization.
 #' @param x0 An optional numeric vector representing the initial guess for the optimization. If NULL, a default value will be used.
 #' @param lb An optional numeric vector representing the lower bounds for each channel. If NULL, default values will be used.
@@ -10,8 +10,9 @@
 #' @import nloptr
 #' @export
 
-optimal_mix = function(response_funs, total, x0 = NULL, lb = NULL, ub = NULL, ineq_constr = NULL){
+mrm_optimal_mix = function(mrm, total, x0 = NULL, lb = NULL, ub = NULL, ineq_constr = NULL){
 
+  response_funs = map(mrm, ~get_response_function(.x))
   object_func = set_objective_function(response_funs)
   C = length(response_funs)
 
