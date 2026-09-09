@@ -81,6 +81,40 @@ Returned by `fit_response()`. Key fields:
 - `$cost_per_unit` — cost-per-unit if `units` supplied
 - `$date_range` — `c(min_date, max_date)` from input data
 
+### `mrmfit_tv` (extends `brmsfit`; does NOT inherit `mrmfit`)
+Returned by `fit_response_tv()`. One or more of `b`/`c`/`d`/`e` are modeled as
+`s(t)`/`gp(t)` functions of time instead of constants — see `## Time-Varying
+Response Curves` below for the evidence behind the default `varying = "e"`
+and `method = "spline"`. Does not inherit `mrmfit`: single-curve `mrm_*`
+methods assume static parameters (same reasoning as `mrmfit_hier`). Key
+fields: `$varying`, `$method`, `$k`, `$trajectory` (long tibble, one row per
+time-grid point × varying parameter, from `hlpr_params_tv()`),
+`$identifiability` (pre-fit heuristic result), `$diagnostics` (post-fit
+convergence gate — **authoritative**; the pre-fit heuristic is advisory
+only), `$scale_values`, `$rc_type`, `$date_range`. Use `mrm_tv_snapshot()` to
+get a static curve at one date for `opt_mix()` — a `mrmfit_tv` cannot itself
+be optimized (its objective is time, not a point).
+
+### `mrmfit_tv_snapshot` (extends `mrmfit`)
+Returned by `mrm_tv_snapshot(fit_response_tv_object, at = )`. Unlike
+`as_mrmfit_list()`'s per-unit views (constructed from a hierarchy that
+already exists), this is built by evaluating `posterior_linpred()` at one
+target date for every varying parameter and reading ordinary population
+draws for frozen ones — so it deliberately **does** inherit `mrmfit` (a
+snapshot at a fixed date is a genuine static curve). Reuses
+`hlpr_params()`'s existing `params_hier_unit` shortcut (same field name
+`as_mrmfit_list()` uses — deliberate reuse, not a naming accident) and a
+synthetic `.snapshot_draws` object with a registered
+`as_draws_df.mrmfit_tv_snapshot` method, mirroring `as_mrmfit_list()`'s
+`.unit_draws` mechanism so `opt_mix()`'s posterior-based path works
+identically. `response_df`/`summary` are built via a new
+`hlpr_infer_tv_snapshot()` (a `t`-aware sibling of `mrm_infer()`, whose
+`ar`/`mr`/`cp` arithmetic it copies verbatim rather than re-derives) — this
+requires a small addition to `mrm_infer()`'s existing per-unit-view
+short-circuit so it also recognizes `mrmfit_tv_snapshot` objects, otherwise
+`mrm_summary()`'s internal `mrm_infer()` call would try `predict()`/`fitted()`
+on an object with no live posterior sampler.
+
 ### `mrmopt_prior`
 List-based prior specification. Created with `mrmopt_prior()`.
 
@@ -296,6 +330,67 @@ When both absolute and share bounds are present, the tighter constraint wins.
 
 ---
 
+## Time-Varying Response Curves
+
+`fit_response_tv()` fits `b`/`c`/`d`/`e` as `s(t)`/`gp(t)` functions of time
+inside `brms`'s existing nonlinear formula interface — no hand-written Stan,
+despite an earlier roadmap draft claiming otherwise.
+
+**Call graph:** `fit_response_tv()` → `hlpr_tv_identifiability()` (pre-fit,
+advisory) → `hlpr_scale_data()`/`hlpr_resolve_prior_tv()` (reused from the
+base fit path; `hlpr_resolve_prior_tv()` only adds the `e → le` log-form
+reparameterization) → `hlpr_define_response_form_tv()` → `brms::brm()` →
+post-fit convergence gate (authoritative) → `hlpr_params_tv()` for the cached
+trajectory. `mrm_tv_snapshot()` and `hlpr_infer_tv_snapshot()` are the
+`opt_mix()` bridge — see the `mrmfit_tv_snapshot` entry under Core S3
+Objects. `mrm_plot_tv()` covers `type = "trajectory"` (parameter vs. time)
+and `type = "evolution"` (a heatmap of the fitted surface, time on x / spend
+on y, plus discrete curve snapshots colored by date, spend on x / KPI on y —
+combined via `patchwork`).
+
+**Key files:** `R/fit_response_tv.R`, `R/hlpr_define_response_form_tv.R`,
+`R/hlpr_resolve_prior_tv.R`, `R/hlpr_tv_identifiability.R`,
+`R/hlpr_params_tv.R`, `R/mrm_tv_snapshot.R`, `R/hlpr_infer_tv_snapshot.R`,
+`R/print.mrmfit_tv.R`, `R/mrm_summary_tv.R`, `R/mrm_plot_tv.R`.
+
+**Design decisions and their evidence** (from `dev/tv_smooth_curves.R`,
+`dev/tv_smooth_params.R`, `dev/tv_paid_search_fix.R`, `dev/hier_time_pooling.R`
+— 35+ real fits across three channels with very different spend variation):
+
+- **Why not `fit_response_hier(group = <time bucket>)`?** It already works
+  for pooling the ceiling alone at moderate bucket counts, but with 9
+  quarterly buckets, `pool = "d"` alone froze `b`/`e` at a population value
+  that fit no individual bucket (Linear TV: population `e = 1.81M` vs. every
+  quarter's own independently-fit midpoint of 253K–987K — numerically linear
+  to rounding error over any single quarter's actual spend range), while
+  `pool = c("b","e","d")` (the function's own default) diverged outright
+  (458 divergences, ESS 70) because too few groups remained to estimate
+  three group-level variances.
+- **`method = "spline"` default, not exact GP.** Measured on one channel:
+  `s(t)` — 76s, 0 divergences, 0% max-treedepth. Exact `gp(t)` — 2,914s (49
+  min) *even parallelized across 4 cores*, and 25% of transitions hit max
+  treedepth (a real sampler-geometry problem, not just slowness).
+  `gp(t, k=, c=5/4)` (the Hilbert-space approximation, `method = "gp_approx"`)
+  matched `s(t)`'s cost and cleanliness.
+- **`varying = "e"` default, not the original roadmap sketch's
+  `c("d","e")`.** Across three channels with robust spend-quantile ratios of
+  ~1.9x, ~5-31x, and ~800x, letting `e` vary was the only choice clean on
+  all three. `d` was close behind. Letting `b` vary alone, or letting two
+  parameters vary jointly, produced genuine posterior multimodality on the
+  narrowest-range channel — confirmed by refitting with 6x the
+  warmup/iterations and a stricter `adapt_delta` (0.999 vs 0.99): the
+  problem chain landed in the *same* alternate mode both times, and the
+  joint-variation case's R-hat got *worse* with more sampling. This is why
+  the post-fit convergence gate is authoritative and the pre-fit
+  spend-ratio heuristic in `hlpr_tv_identifiability()` is explicitly
+  documented as advisory only, built from limited evidence.
+- **No free intercept-equivalent tuning was needed.** Unlike the (shelved)
+  cross-channel synergy work, `brms`'s own default smooth/GP hyperparameter
+  priors were sufficient across every fit validated — no custom prior tier
+  was added for `sds_*`/`sdgp_*`/`lscale_*`.
+
+---
+
 ## Prior Specification (3-tier system)
 
 1. **Automatic** (`auto = TRUE` in `fit_response`) — smart defaults
@@ -328,6 +423,20 @@ When both absolute and share bounds are present, the tighter constraint wins.
 
 ## Key Recent Changes (from prior sessions)
 
+- **`fit_response_tv()`**: New function fitting time-varying response curves
+  via `s(t)`/`gp(t)` terms inside `brms`'s existing nonlinear formula
+  interface (no hand-written Stan). New class `mrmfit_tv` (does not inherit
+  `mrmfit`) and `mrmfit_tv_snapshot` (does, via `mrm_tv_snapshot()` — the
+  `opt_mix()` bridge). New files: `R/fit_response_tv.R`,
+  `R/hlpr_define_response_form_tv.R`, `R/hlpr_resolve_prior_tv.R`,
+  `R/hlpr_tv_identifiability.R`, `R/hlpr_params_tv.R`, `R/mrm_tv_snapshot.R`,
+  `R/hlpr_infer_tv_snapshot.R`, `R/print.mrmfit_tv.R`, `R/mrm_summary_tv.R`,
+  `R/mrm_plot_tv.R`. One small addition to an existing file:
+  `mrm_infer()`'s per-unit-view short-circuit now also recognizes
+  `mrmfit_tv_snapshot` objects (needed so `mrm_summary()`'s internal
+  `mrm_infer()` call works on a snapshot). See `## Time-Varying Response
+  Curves` above for the full design rationale and the evidence (35+ real
+  fits) behind `varying = "e"`/`method = "spline"` as defaults.
 - **Cost-per-KPI objectives**: Added `objective = "target_cpk"` and `objective = "target_mcpk"` — convenience wrappers around `target_roi`/`target_mroi` that accept and report cost-per-KPI instead of ROI. Internally converts: `target_roi = 1/target_cpk`, `target_mroi = 1/target_mcpk`. Return gains `$target_cpk`/`$achieved_cpk`, `$target_mcpk`/`$channel_mcpk`. `opt_summary.R` displays CPK/mCPK framing. Useful for non-revenue KPIs (leads, visits, opportunities).
 - **Flexible-budget optimisation objectives**: Added `objective = "target_roi"` and `objective = "target_mroi"` to `opt_mix()`. Target ROI maximises incremental KPI subject to portfolio ROI ≥ target (budget is an output). Target mROI sets each channel's spend where dy/dx = target (per-channel root-finding, no multi-channel solver). Both support `method = "point"` and `method = "posterior"`. New files: `R/opt_mix_target_roi.R`, `R/opt_mix_target_mroi.R`, `R/hlpr_baseline_kpi.R`, `R/hlpr_numerical_mr.R`. Return structure gains `$objective`, `$target_roi`/`$achieved_roi`, `$target_mroi`/`$channel_mroi`. `opt_summary.R` and `opt_table.R` are objective-aware. Mock fixture (`helper-mock.R`) now includes `params_hier_unit` for `hlpr_params()` compatibility.
 - **opt_mix API redesign**: `summary.opt_mix_result()` now produces the formatted console output (previously done by `print`). `print.opt_mix_result()` is a thin wrapper calling `summary()`. `opt_table()` is a new plain exported function that returns the tidy comparison tibble (previously returned by `summary()`). All internal `plot_opt_*` helpers are now standalone exported functions named `opt_plot_allocation()`, `opt_plot_comparison()`, `opt_plot_posterior()`, `opt_plot_curves()`, `opt_plot_returns()`, and `opt_plot_compare()`. `plot.opt_mix_result()` and `plot.opt_mix_compare()` are thin dispatchers calling the `opt_plot_*` functions. `opt_plot_posterior()` now hard-errors (instead of message + fallback) when called on a point result.

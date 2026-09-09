@@ -58,6 +58,90 @@ data-driven — units with more observations get pulled less toward the group me
 
 ---
 
+### Time-Varying Response Curves
+
+**Experimental.** Statistically validated across three real channels (see below), but the
+API and defaults should still be considered subject to change as more channels are tried
+against it.
+
+**New function:** `fit_response_tv()` — **shipped.** See the
+[Time-Varying Response Curves](https://roeh-marketing.github.io/mrmopt/articles/time_varying_curves.html)
+article for a worked example.
+
+Standard response curve fitting treats the whole observation window as a
+single stationary period. `fit_response_tv()` instead models one or more of
+the curve parameters (`b`, `c`, `d`, `e`) as smooth or Gaussian-process
+functions of time, inside `brms`'s existing nonlinear formula interface — no
+hand-written Stan required.
+
+```r
+fit_tv <- fit_response_tv(
+  data    = channel_data,
+  spend   = "spend",
+  kpi     = "conversions",
+  date    = "week",
+  type    = "gompertz",
+  varying = "e",         # which parameter(s) evolve over time
+  method  = "spline"     # s(t); "gp_approx" or "gp" also available
+)
+```
+
+**Available today — the intermediate formulation already ships too.**
+Partial pooling of curve parameters across time buckets needs no new
+function: `fit_response_hier()` validates `group` only as a column present
+in the data, so a time bucket works exactly like a sub-channel
+(`fit_response_hier(group = "quarter", pool = "d")`). It is a reasonable
+first thing to try, but is unsafe for shape parameters at real-world bucket
+counts — see Known limitations.
+
+**Delivered:**
+
+- `varying` — a subset of `b`/`c`/`d`/`e`; default `"e"`, chosen from
+  cross-channel evidence (see below), not an assumption
+- `method = "spline"` (default, `s(t)`), `"gp_approx"` (Hilbert-space
+  approximate Gaussian process, comparable cost to spline), or `"gp"` (exact
+  GP — available, not recommended as a default; see Known limitations)
+- A two-layer identifiability gate: a fast pre-fit spend-variability
+  heuristic (advisory), and a mandatory post-fit convergence check (R-hat,
+  ESS, divergences, treedepth — authoritative), both surfaced by `print()`
+- `mrm_tv_snapshot()` extracts a static curve — with full posterior
+  uncertainty, not just a point estimate — at any date, which feeds
+  `opt_mix()` exactly like an ordinary `fit_response()` fit
+- `mrm_plot_tv()`: `type = "trajectory"` (a parameter plotted against time)
+  and `type = "evolution"` (a continuous heatmap of the fitted curve
+  surface — time on the x-axis, spend on the y-axis — alongside discrete
+  curve snapshots colored by date, spend on x / KPI on y)
+- Log-based curve forms reparameterize the midpoint on the log scale
+  internally (same technique as `fit_response_hier()`), so a time-varying
+  midpoint doesn't require `e > 0` to hold pointwise during sampling
+
+**Known limitations:**
+
+- A `mrmfit_tv` does not itself feed `opt_mix()` — its curve is a function
+  of time, not a single point. Use `mrm_tv_snapshot()`.
+- The pre-fit identifiability heuristic is built from limited evidence (one
+  clear failure, two clear successes across three tested channels) and is
+  not uniformly predictive — on the same failing channel, letting the
+  ceiling alone vary improved with more sampling while letting steepness
+  vary did not, even at 6x the warmup/iterations. Treat it as a reason to
+  look closely at the post-fit gate, not as a verdict on its own.
+- Exact `method = "gp"` is measurably worse than the alternatives, not just
+  slower: on one channel, 2,914s (49 minutes) even parallelized across 4
+  cores, versus 76s for `"spline"`, *and* 25% of transitions hit max
+  treedepth (a real sampler-geometry problem). Reach for it only when its
+  smoothness properties are specifically needed.
+- `fit_response_hier(group = <time bucket>)` is unsafe for shape parameters
+  at real-world bucket counts: pooling the ceiling alone can freeze the
+  shape parameters at a population value that fits no individual bucket,
+  while pooling all three shape/scale parameters together can fail to
+  converge outright when too few buckets remain to estimate multiple
+  group-level variances. `fit_response_tv()` avoids both failure modes by
+  not bucketing at all.
+
+---
+
+## Medium-Term
+
 ### Rolling Window Response Curves (`mrm_rolling()`)
 
 **New function:** `mrm_rolling()`
@@ -98,20 +182,18 @@ visible.
 
 **Note:** This is a diagnostic and exploratory tool. Because windows are fit
 independently there is no formal pooling across them — adjacent windows do not
-borrow strength from each other. The longer-term time-varying parameter model
-(see below) addresses this limitation with a principled shared estimation
-framework.
+borrow strength from each other. `fit_response_tv()` (see Recently Shipped,
+above) addresses this limitation with a principled shared estimation
+framework — a smooth or GP term instead of independent windows.
 
 ---
 
-## Medium-Term
-
 ### Adstock Support
 
-Estimated geometric adstock decay integrated into `fit_response()` via an
-optional `adstock = TRUE` argument. The decay parameter will be estimated
-jointly with the saturation curve parameters and carry full posterior
-uncertainty, consistent with Meridian's approach.
+A geometric adstock **preprocessing** option for `fit_response()`'s spend
+column, via an `adstock` argument — applied the same way `scale_data`/
+`scale_method` already transform spend today: a fixed, user-supplied decay,
+not something the model estimates.
 
 ```r
 fit <- fit_response(
@@ -120,75 +202,39 @@ fit <- fit_response(
   kpi     = "conversions",
   date    = "week",
   type    = "gompertz",
-  adstock = TRUE   # estimate decay parameter jointly
+  adstock = 0.75   # fixed decay, applied to spend before scaling/fitting
 )
 ```
 
-Default prior: `Uniform(0, 1)` on the decay parameter — uninformative,
-consistent with Meridian's defaults. Users can tighten this with domain
-knowledge about carryover windows for specific channels.
+Applied to raw spend (sorted by `date`, since row order is load-bearing for
+this transform) before `hlpr_scale_data()` runs — no new sampled parameter,
+no new prior, no new return class. A companion `mrm_adstock_future()` helper
+projects KPI from planned future spend, seeding the recursion from real
+historical carryover rather than resetting to zero at week 1 of a plan.
+
+**Motivating evidence:** On real Linear TV data (103 weekly obs.), raw
+spend-vs-KPI correlation is a weak 0.61 — the channel's spend is jagged
+(near-zero one week, high the next), while KPI moves smoothly, consistent
+with real carryover rather than noise. A geometric-adstock transform of
+spend, with decay grid-searched to maximize correlation against KPI, raised
+the correlation to 0.92 at decay ≈ 0.75 (half-life ≈ 2.4 weeks) — a clean
+single peak in the grid, not a boundary artifact.
+
+**Why decay isn't estimated by the model:** jointly estimating decay (a
+recursive, order-dependent transform of the full spend vector) inside
+`brms`'s nonlinear formula interface was investigated and ruled out —
+`brms`'s `stanvar()` injection mechanism is additive only and cannot retarget
+the covariate reference its own generated code uses for the main predictor,
+confirmed by reading the actual generated Stan output rather than assumed.
+A working approximation (fitting a grid of fixed-decay models and combining
+via PSIS-LOO stacking weights) was designed but also set aside as
+disproportionate complexity for what should be a simple preprocessing knob.
+See `dev/adstock_design_notes.md` for the full research record, including
+the ruled-out joint-estimation design, if this is ever revisited.
 
 ---
 
 ## Longer-Term / Exploratory
-
-### Time-Varying Response Curves (`fit_response_tv()`)
-
-**New function:** `fit_response_tv()`
-
-`mrm_rolling()` makes parameter drift visible but estimates each window
-independently. The proper formulation treats the curve parameters themselves as
-functions of time — continuous, smooth, and estimated jointly across all
-observations in a single model. This is a **time-varying parameter model**,
-where `d` (ceiling) and `e` (midpoint) follow a random walk or Gaussian Process
-over time:
-
-$$d_t \sim \mathcal{N}(d_{t-1},\ \sigma_d), \qquad e_t \sim \mathcal{N}(e_{t-1},\ \sigma_e)$$
-
-The evolution variance (`σ_d`, `σ_e`) is estimated from the data and controls
-the timescale of parameter change — a small σ means near-stationary parameters;
-a larger σ allows rapid seasonal swings. Parameters `b` (steepness) and `c`
-(floor) are held fixed at the channel level, as these reflect structural
-properties of the channel rather than seasonal demand.
-
-```r
-fit_tv <- fit_response_tv(
-  data       = channel_data,
-  spend      = "spend",
-  kpi        = "conversions",
-  date       = "week",
-  type       = "gompertz",
-  varying    = c("d", "e"),   # which parameters evolve over time
-  evolution  = "random_walk"  # or "gp" for Gaussian Process
-)
-```
-
-**Relationship to the rolling window approach:** The window size in
-`mrm_rolling()` is a discrete proxy for the GP kernel bandwidth here. A
-13-week window implies parameters change on a ~quarterly timescale — the
-equivalent GP kernel would have a length-scale of ~13 weeks. The time-varying
-model captures this continuously and without boundary artifacts at window edges.
-
-**Relationship to seasonal hierarchical models:** A simpler intermediate
-formulation — year-level partial pooling on `d` alone, fit via `brms` multilevel
-machinery — is worth building first as a stepping stone. It addresses
-year-over-year ceiling shifts (e.g., a growing market) without requiring custom
-Stan code, and its output is directly compatible with the existing `opt_mix()`
-infrastructure.
-
-**Key properties:**
-
-- `evolution = "random_walk"`: AR(1) prior on parameters — tractable in Stan,
-  natural for slowly drifting seasonality
-- `evolution = "gp"`: Gaussian Process prior — more flexible, kernel bandwidth
-  estimated from data, but significantly more expensive
-- Requires hand-written Stan model via `CmdStanR` — outside the `brms` formula
-  interface
-- Returns a `mrmfit_tv` object with time-indexed parameter posteriors and a
-  `mrm_plot_tv()` visualization showing the evolving curve across the observation
-  window
-
----
 
 ### Ground-Up Joint MMM (`fit_mmm()`)
 

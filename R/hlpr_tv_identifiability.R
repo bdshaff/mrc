@@ -1,0 +1,63 @@
+#' Pre-fit identifiability heuristic for time-varying response curves
+#'
+#' Estimates, before any sampling, whether a channel's spend has enough
+#' variation to support the requested time-varying parameter(s). Computed on
+#' the robust ratio \code{quantile(spend, .95) / quantile(spend, .05)} rather
+#' than \code{max/min}, because \code{max/min} is corrupted by
+#' floating-point-dust minima and exact zeros in real spend data (both were
+#' observed in the data this heuristic was validated against).
+#'
+#' @param spend Numeric vector of spend values, in original (unscaled) units,
+#'   captured before any scaling transform (scaling changes the quantile
+#'   ratio for min-max scaling, since it is not a pure multiplicative
+#'   transform).
+#' @param varying Character vector of parameters requested to vary (subset of
+#'   \code{b}, \code{c}, \code{d}, \code{e}).
+#' @param min_spend_ratio Threshold applied when \code{varying} is a single
+#'   parameter other than \code{"b"}. Default \code{3}.
+#' @param min_spend_ratio_multi Threshold applied when \code{varying} includes
+#'   \code{"b"} or more than one parameter -- the two request shapes observed
+#'   to produce genuine posterior multimodality on a narrow-spend-range
+#'   channel during this feature's development. Default \code{8}.
+#'
+#' @return A list with \code{spend_ratio}, \code{threshold_used},
+#'   \code{risky_request} (logical), and \code{flag} (logical, \code{TRUE}
+#'   when \code{spend_ratio < threshold_used}).
+#'
+#' @details
+#' **This is a heuristic, not a certainty.** The default thresholds are set
+#' from limited evidence gathered during development: one clear failure
+#' (spend ratio 1.9, where letting steepness or two parameters vary jointly
+#' produced chains stuck in different posterior modes that did not resolve
+#' even after 6x the warmup/iterations and a stricter \code{adapt_delta}) and
+#' two clear successes (ratios of roughly 5-31x and 800x, where every tested
+#' parameter combination -- including the ones that failed on the narrow
+#' channel -- converged cleanly). It is not a validated cutoff, and it is not
+#' uniformly predictive: on the same failing channel, letting the ceiling
+#' alone vary showed only mild convergence trouble that improved with more
+#' sampling, while letting steepness vary did not improve at all. Treat a
+#' flagged fit as a reason to look closely at the post-fit convergence
+#' diagnostics on \code{$diagnostics} -- which are the authoritative check --
+#' not as a reason to trust or distrust the fit on this heuristic alone.
+#'
+#' @seealso \code{\link{fit_response_tv}}
+#' @keywords internal
+
+hlpr_tv_identifiability <- function(spend, varying,
+                                    min_spend_ratio = 3,
+                                    min_spend_ratio_multi = 8) {
+
+  lo <- stats::quantile(spend, 0.05, names = FALSE, na.rm = TRUE)
+  hi <- stats::quantile(spend, 0.95, names = FALSE, na.rm = TRUE)
+  spend_ratio <- if (lo <= 0) Inf else hi / lo
+
+  risky_request <- ("b" %in% varying) || (length(varying) > 1)
+  threshold_used <- if (risky_request) min_spend_ratio_multi else min_spend_ratio
+
+  list(
+    spend_ratio    = spend_ratio,
+    threshold_used = threshold_used,
+    risky_request  = risky_request,
+    flag           = is.finite(spend_ratio) && spend_ratio < threshold_used
+  )
+}

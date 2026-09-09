@@ -24,6 +24,7 @@ articles:
       - diagnostics_and_comparison
       - optimization
       - hierarchical_models
+      - time_varying_curves
       - response_curve_theory
   - title: "Project"
     contents:

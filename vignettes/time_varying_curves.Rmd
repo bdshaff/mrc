@@ -1,0 +1,240 @@
+---
+title: "Time-Varying Response Curves"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Time-Varying Response Curves}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment  = "#>",
+  fig.width  = 8,
+  fig.height = 4.5,
+  message  = FALSE,
+  warning  = FALSE
+)
+library(mrmopt)
+```
+
+Standard response curve fitting treats the whole observation window as a
+single stationary period. In practice, the relationship between spend and KPI
+drifts — audiences change, creative fatigues or improves, competitive pressure
+shifts. `fit_response_tv()` models one or more of the curve parameters
+(`b`, `c`, `d`, `e`) as smooth or Gaussian-process functions of time instead
+of constants, so the curve itself can evolve across the fitted period.
+
+This vignette walks through the API on a small simulated series — a handful
+of chains and a short chain length, purely to keep the examples fast. It is
+not a statistical validation; see `dev/tv_smooth_curves.R` and
+`dev/tv_smooth_params.R` for the real-data evidence behind this feature's
+defaults.
+
+---
+
+## The data
+
+A single channel, 60 weekly observations, where the midpoint (`e`) — the
+spend level at which the response curve is half-saturated — drifts down over
+the year: the same conversion rate is reached at less spend by the end of the
+period than at the start (e.g. an improving creative, or a maturing
+audience). The ceiling, floor, and steepness are held fixed so the drift in
+`e` is the only thing moving.
+
+```{r simulate}
+set.seed(42)
+n <- 60
+t <- seq(0, 1, length.out = n)
+
+true_b <- -0.004
+true_c <- 10
+true_d <- 200
+true_e <- 800 - 400 * t   # drifts from 800 down to 400 over the year
+
+spend <- runif(n, 100, 1500)
+gompertz <- function(x, b, c, d, e) c + (d - c) * exp(-exp(b * (x - e)))
+kpi <- pmax(gompertz(spend, true_b, true_c, true_d, true_e) + rnorm(n, 0, 8), 0)
+
+channel_data <- data.frame(
+  spend = spend,
+  kpi   = kpi,
+  date  = as.Date("2023-01-02") + (seq_len(n) - 1) * 7
+)
+head(channel_data)
+```
+
+---
+
+## When to reach for this instead of `fit_response_hier()`
+
+Partial pooling of curve parameters across time buckets already works with
+no new function — `fit_response_hier(group = "quarter", pool = "d")` treats a
+time bucket exactly like a sub-channel. It is a reasonable first thing to
+try, and needs no smooth/GP machinery. `fit_response_tv()` is the better
+choice when:
+
+- bucket boundaries would be arbitrary and you want a continuous trajectory
+  instead of a step function, or
+- there are too few time buckets to safely pool more than one parameter —
+  hierarchical pooling of shape parameters can fail outright when few
+  buckets remain to estimate multiple group-level variances (see
+  `ROADMAP.md`'s Known Limitations for `fit_response_hier()`'s time-bucket
+  use), or
+- the parameter you care about (the midpoint, here) is the one most likely
+  to benefit — see the next section.
+
+---
+
+## Fit the model
+
+```{r fit-main}
+fit <- fit_response_tv(
+  channel_data,
+  spend = "spend", kpi = "kpi", date = "date",
+  varying = "e",        # the default; see "Choosing varying" below
+  method  = "spline",   # the default; s(t)
+  chains  = 2, iter = 1500, warmup = 750, refresh = 0
+)
+```
+
+`varying = "e"` is the package default, not an arbitrary starting point —
+across the channels tested during development, letting the midpoint vary was
+the only choice that converged cleanly on all of them; letting steepness
+(`b`) vary, or letting two parameters vary jointly, was fine on wide-spend
+channels but risked real convergence trouble on a narrow one — see "A
+flagged fit" below.
+
+```{r print-fit}
+print(fit)
+```
+
+`print()` surfaces two checks, not just the parameter trajectory:
+
+- a **pre-fit** spend-variability heuristic (advisory — built from limited
+  evidence, not a certainty)
+- a **post-fit** convergence check (R-hat, effective sample size,
+  divergences, treedepth) — this one is authoritative. A clean pre-fit ratio
+  does not guarantee a clean post-fit result, and vice versa; both are
+  always shown.
+
+Both are also available directly:
+
+```{r diagnostics}
+fit$identifiability
+fit$diagnostics
+```
+
+---
+
+## Visualization
+
+`mrm_plot_tv()` has two views. `type = "trajectory"` plots the varying
+parameter(s) against time:
+
+```{r plot-trajectory}
+mrm_plot_tv(fit, type = "trajectory")
+```
+
+`type = "evolution"` shows the fitted curve itself changing shape — a
+continuous heatmap (time on the x-axis, spend on the y-axis, reading
+left-to-right like an ordinary time series) alongside a few discrete curve
+snapshots colored by date:
+
+```{r plot-evolution, fig.height=5}
+mrm_plot_tv(fit, type = "evolution")
+```
+
+The recovered trajectory should track the simulated drift in `true_e` — the
+curve visibly saturates at lower spend by the end of the series than at the
+start.
+
+---
+
+## A flagged fit
+
+Not every `varying`/data combination is safe, and the point of the
+identifiability gates is to say so rather than silently return a number.
+Here the same shape of series, but with spend confined to a narrow band and
+`b` (steepness) instead of `e` set to vary — the two conditions found,
+during development, to risk convergence trouble:
+
+```{r fit-flagged}
+narrow_data <- channel_data
+narrow_data$spend <- runif(n, 900, 1100)   # spend barely varies
+
+fit_flagged <- fit_response_tv(
+  narrow_data,
+  spend = "spend", kpi = "kpi", date = "date",
+  varying = "b",
+  chains = 2, iter = 1500, warmup = 750, refresh = 0
+)
+print(fit_flagged)
+```
+
+The **pre-fit** heuristic flags this one (spend ratio well under the
+stricter threshold `varying = "b"` triggers). The **post-fit** gate happens
+to come back clean here — but look at the Bayes R2: it collapses to near
+zero. With spend barely varying, there is no information to estimate how
+steepness moves over time, so the chains agree there's nothing to find
+rather than disagreeing about where the answer is; R-hat alone would not
+have caught this. That is exactly why both checks exist and neither is
+sufficient alone — a low R2 on a "clean" fit is as much a red flag as a bad
+R-hat. On real data, this same failure mode (narrow spend range, steepness
+or multiple parameters varying) has produced genuine posterior
+multimodality — chains landing in different, disagreeing answers rather
+than agreeing there's no answer — which the post-fit gate does catch; see
+`dev/tv_paid_search_fix.R` for that case. Either way, the fix is the same:
+a smaller `varying` set, `method = "gp_approx"`, or falling back to
+`fit_response()` if the channel's own spend range cannot support time
+variation at all.
+
+---
+
+## Static curves for optimization
+
+A `mrmfit_tv` doesn't itself feed `opt_mix()` — its curve is a function of
+time, not a single point. `mrm_tv_snapshot()` extracts a static curve at a
+specific date, with full posterior uncertainty carried through (not just the
+point estimate), so it behaves like an ordinary `fit_response()` fit for
+every purpose `opt_mix()` needs:
+
+```{r snapshot}
+snap <- mrm_tv_snapshot(fit, at = "latest")
+print(snap)
+```
+
+```{r opt-mix}
+opt_mix(list(channel = snap), budget = mean(channel_data$spend) * 52, verbose = FALSE)
+```
+
+Pass `date = ` instead of `at = ` to snapshot at a specific point in the
+trajectory rather than the most recent one.
+
+---
+
+## Choosing `varying` and `method`
+
+| `varying` | Notes |
+|---|---|
+| `"e"` (default) | Midpoint. The safest single choice found during development — converged cleanly across every tested channel. |
+| `"d"` | Ceiling. Close behind `"e"` in reliability; a reasonable alternative when the ceiling, not the saturation point, is what's expected to move. |
+| `"b"` | Steepness. Weaker fit and the parameter most prone to multimodality on narrow-spend channels — see above. |
+| more than one | Not unsafe by default, but not obviously better either: on the channels tested, letting two parameters vary jointly rarely beat the best single-parameter choice by enough to justify the extra identifiability risk. |
+
+| `method` | Cost (measured on one real channel) | When to use |
+|---|---|---|
+| `"spline"` (default) | ~76s, 0 divergences | Default. `s(t)`. |
+| `"gp_approx"` | ~77s, 0 divergences | A same-cost alternative to spline; Hilbert-space approximate GP. |
+| `"gp"` | ~2,914s (49 min), 25% max-treedepth | Exact GP. Available, not recommended as a default — meaningfully slower *and* a real sampler-geometry problem, not just slower. |
+
+---
+
+## Where to go next
+
+| Topic | Vignette |
+|-------|----------|
+| Partial pooling of curve parameters, including across time buckets | [Hierarchical Models](hierarchical_models.html) |
+| Budget optimization objectives and constraints | [Optimization](optimization.html) |
+| Mathematical foundations of the six curve forms | [Response Curve Theory](response_curve_theory.html) |

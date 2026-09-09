@@ -530,17 +530,18 @@ variation:
     saturation behaviour. See the *Hierarchical Curves* vignette for
     details.
 
--   **Rolling-window models** via `fit_response_window()` (planned):
+-   **Rolling-window models** via `mrm_rolling()` (planned):
     For channels where the response curve itself drifts over time — due
     to seasonality, competitive dynamics, or platform changes — a
     rolling-window approach fits separate curves to overlapping time
     windows, tracking how parameters evolve. This is on the development
-    roadmap.
+    roadmap. For *pooled* per-period estimates available today, use
+    `fit_response_hier()` with a time bucket as the `group`.
 
 If breaks are suspected and neither approach applies, fit separate
 models to each sub-period. The `date_range` metadata stored on each
 fitted model (accessible as `fit$date_range`) makes it straightforward
-to compare models across periods using `mrm_plot_compare()`.
+to compare models across periods using `mrms_plot_compare()`.
 
 ------------------------------------------------------------------------
 

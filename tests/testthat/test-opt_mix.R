@@ -27,6 +27,19 @@ test_that("opt_mix rejects invalid method", {
   expect_error(opt_mix(list(ch = m), method = "invalid"), "should be one of")
 })
 
+test_that("opt_mix accepts a mrm_tv_snapshot() output alongside ordinary mrmfits", {
+  snap <- make_mock_mrmfit_tv_snapshot("gompertz")
+  m <- make_mock_mrmfit("gompertz")
+  mrms <- list(streaming = snap, search = m)
+  # Passing the class/named-list validation -- the error that fires below is
+  # from `method = "invalid"`, not "must be a named list of mrmfit objects",
+  # confirming the snapshot's class satisfies that check. Its field contract
+  # satisfying opt_mix()'s downstream reads is verified end-to-end against a
+  # real fit; see test-mrm_tv_snapshot.R's header comment.
+  expect_true(all(vapply(mrms, inherits, logical(1), "mrmfit")))
+  expect_error(opt_mix(mrms, method = "invalid"), "should be one of")
+})
+
 
 # =========================================================================
 # hlpr_auto_constraints

@@ -39,6 +39,31 @@ mrm_infer <- function(mrm, xrange = NULL, length.out = 1000, scaled = TRUE) {
     )
   }
 
+  # Time-snapshot views from mrm_tv_snapshot() carry the same "cached, not
+  # refittable" contract as an as_mrmfit_list() per-unit view, for the same
+  # reason: the object is derived from posterior draws at one date, not a
+  # standalone brmsfit that predict()/fitted() can run on with a fresh grid.
+  if (inherits(mrm, "mrmfit_tv_snapshot")) {
+    if (is.null(xrange) && length.out == 1000 && !is.null(mrm$response_df)) {
+      warning(
+        "mrm_infer() is designed for a single static `mrmfit`. You passed a ",
+        "time-snapshot view from `mrm_tv_snapshot()`; the result is derived ",
+        "from the snapshot's cached values at its target date, not a refit. ",
+        "Use the parent `mrmfit_tv` (or `mrm_plot_tv()`) for the full ",
+        "time-varying model.",
+        call. = FALSE
+      )
+      return(mrm$response_df)
+    }
+    stop(
+      "Custom `mrm_infer()` (xrange/length.out) is not available for a ",
+      "time-snapshot view from `mrm_tv_snapshot()`; its cached `response_df` ",
+      "uses the snapshot's own inference grid. Call `mrm_tv_snapshot()` again ",
+      "for a different grid.",
+      call. = FALSE
+    )
+  }
+
   rc_type <- mrm$rc_type
   rc_data <- mrm$data
   y <- mrm$formula$resp

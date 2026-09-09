@@ -303,3 +303,152 @@ if (requireNamespace("posterior", quietly = TRUE)) {
                     as_draws_df.mock_brmsfit,
                     envir = asNamespace("posterior"))
 }
+
+
+# -------------------------------------------------------------------------
+# Mock mrmfit_tv fixture, for testing fit_response_tv()'s downstream S3
+# methods (print, mrm_summary_tv, mrm_plot_tv) without MCMC. Not a
+# `mrmfit`-inheriting object -- matches the real fit_response_tv() return
+# class, which deliberately does not inherit "mrmfit" (see R/fit_response_tv.R).
+
+make_mock_mrmfit_tv <- function(varying = "e",
+                                method  = "spline",
+                                type    = "gompertz",
+                                n_t     = 20,
+                                date_range = as.Date(c("2023-01-02", "2023-12-25")),
+                                flagged = FALSE) {
+
+  set.seed(4291)
+  t_grid <- seq(0, 1, length.out = n_t)
+  dates  <- date_range[1] + t_grid * as.numeric(date_range[2] - date_range[1])
+
+  center_of <- list(b = -5e-4, c = 100, d = 1000, e = 5e5)
+  drift_of  <- list(b = -1e-4, c = 0,   d = 300,  e = 1.5e5)
+
+  traj <- purrr::map_dfr(varying, function(p) {
+    center <- center_of[[p]] + drift_of[[p]] * (t_grid - 0.5)
+    tibble::tibble(
+      t = t_grid, date = dates, param = p,
+      center = center,
+      lower  = center - 0.1 * abs(center),
+      upper  = center + 0.1 * abs(center)
+    )
+  })
+
+  n_obs <- 100
+  x_raw <- sort(runif(n_obs, 1e4, 1e6))
+  mock_data <- data.frame(
+    spendchannel = x_raw / max(x_raw),
+    kpi          = runif(n_obs, 0.3, 0.9),
+    t            = seq(0, 1, length.out = n_obs)
+  )
+
+  identifiability <- list(spend_ratio = 12.5, threshold_used = 3,
+                          risky_request = length(varying) > 1 || "b" %in% varying,
+                          flag = FALSE)
+  diagnostics <- list(n_divergent = if (flagged) 5 else 0,
+                      pct_max_treedepth = if (flagged) 3 else 0,
+                      max_rhat = if (flagged) 1.4 else 1.002,
+                      min_ess_bulk = if (flagged) 20 else 2500,
+                      flag = flagged)
+
+  mock <- list(
+    rc_type      = type,
+    spend_col    = "spend_channel",
+    kpi_col      = "kpi",
+    date_col     = "date",
+    date_range   = date_range,
+    scale_values = list(x_min = 0, x_max = max(x_raw), x_offset = 0, y_min = 0, y_max = 1000),
+    scale_method = "min_max",
+    data         = mock_data,
+    varying      = varying,
+    method       = method,
+    k            = 10,
+    identifiability = identifiability,
+    diagnostics  = diagnostics,
+    trajectory   = traj,
+    R2           = tibble::tibble(Estimate = 0.85, Est.Error = 0.02, Q2.5 = 0.80, Q97.5 = 0.90)
+  )
+  class(mock) <- c("mrmfit_tv", "mock_brmsfit_tv")
+  mock
+}
+
+# Minimal fake posterior_epred() for mock_brmsfit_tv, so mrm_plot_tv(type =
+# "evolution") is testable without MCMC. Returns a 1-draw matrix (median-only
+# is all the plot needs) built from the same deterministic drift used above.
+posterior_epred.mock_brmsfit_tv <- function(object, newdata, ...) {
+  # A simple deterministic function of (spend, t) -- enough to prove the
+  # plot's data flow and axis mapping are correct; not meant to resemble a
+  # real fitted surface.
+  x_col <- setdiff(names(newdata), c("t", "kpi"))[1]
+  vals <- newdata[[x_col]] * (1 + 0.5 * newdata$t)
+  matrix(vals, nrow = 1)
+}
+if (requireNamespace("brms", quietly = TRUE)) {
+  registerS3method("posterior_epred", "mock_brmsfit_tv",
+                    posterior_epred.mock_brmsfit_tv,
+                    envir = asNamespace("brms"))
+}
+
+
+# -------------------------------------------------------------------------
+# Mock mrmfit_tv_snapshot fixture: a hand-built, already-constructed snapshot
+# object (mirrors make_mock_mrmfit()'s approach of building the final shape
+# directly rather than deriving it from a real fit). Sufficient to test that
+# opt_mix() and other mrmfit-consuming functions accept the snapshot's field
+# contract, without needing any MCMC or posterior draw extraction.
+
+make_mock_mrmfit_tv_snapshot <- function(type = "gompertz", n_draws = 200) {
+
+  scale_values <- list(x_min = 0, x_max = 1e6, x_offset = 0, y_min = 0, y_max = 1000)
+
+  set.seed(4291)
+  x_raw <- sort(runif(60, 1e4, 1e6))
+  udata <- data.frame(kpi = runif(60, 0.3, 0.9), spendchannel = x_raw / 1e6)
+
+  rdf <- make_mock_response_df(type = type, x_min = 1e4, x_max = 1e6)
+
+  raw_center <- c(b = -5, c = 0.1, d = 0.9, e = 0.5)
+  point <- list(
+    center = as.list(hlpr_unscale_params(raw_center, scale_values, type)),
+    lower  = as.list(hlpr_unscale_params(raw_center - 0.05, scale_values, type)),
+    upper  = as.list(hlpr_unscale_params(raw_center + 0.05, scale_values, type))
+  )
+
+  ud <- data.frame(
+    b_b_Intercept = rnorm(n_draws, point$center$b, abs(point$center$b) * 0.05),
+    b_c_Intercept = rnorm(n_draws, point$center$c, 5),
+    b_d_Intercept = rnorm(n_draws, point$center$d, 20),
+    b_e_Intercept = rnorm(n_draws, point$center$e, 1e4),
+    sigma = rep(0.1, n_draws),
+    .chain = rep(1:2, each = n_draws / 2),
+    .iteration = rep(seq_len(n_draws / 2), 2),
+    .draw = seq_len(n_draws)
+  )
+  class(ud) <- c("draws_df", "draws", "tbl_df", "tbl", "data.frame")
+
+  mock_formula <- list(resp = "kpi")
+  class(mock_formula) <- "brmsformula"
+
+  obj <- list(
+    rc_type          = type,
+    snapshot_date    = as.Date("2023-12-25"),
+    scale_values     = scale_values,
+    scale_method     = "min_max",
+    cost_per_unit    = NULL,
+    units_col        = NULL,
+    spend_col        = "spend_channel",
+    kpi_col          = "kpi",
+    date_col         = "date",
+    date_range       = as.Date(c("2023-01-02", "2023-12-25")),
+    data             = udata,
+    formula          = mock_formula,
+    params_hier_unit = point,
+    response_df      = rdf,
+    R2               = tibble::tibble(Estimate = 0.85, Est.Error = 0.02, Q2.5 = 0.80, Q97.5 = 0.90),
+    .snapshot_draws  = ud
+  )
+  class(obj) <- c("mrmfit_tv_snapshot", "mrmfit")
+  obj
+}
+
